@@ -15,7 +15,7 @@ import org.nutz.dao.entity.annotation.Table;
 @Table("t_user")
 public class User {
 
-	 @Id
+	@Id
     private int id;
     @Name
     @Column

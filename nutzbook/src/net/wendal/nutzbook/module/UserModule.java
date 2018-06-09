@@ -14,9 +14,12 @@ import org.nutz.lang.Strings;
 import org.nutz.lang.util.NutMap;
 import org.nutz.mvc.annotation.At;
 import org.nutz.mvc.annotation.Attr;
+import org.nutz.mvc.annotation.By;
 import org.nutz.mvc.annotation.Fail;
+import org.nutz.mvc.annotation.Filters;
 import org.nutz.mvc.annotation.Ok;
 import org.nutz.mvc.annotation.Param;
+import org.nutz.mvc.filter.CheckSession;
 
 import net.wendal.nutzbook.bean.User;
 
@@ -26,25 +29,26 @@ import net.wendal.nutzbook.bean.User;
  * @author liangshuai
  * @date 2018年6月8日 下午4:49:57
  */
-@IocBean // 还记得@IocBy吗? 这个跟@IocBy有很大的关系哦
-@At("/user")
-@Ok("json")
-@Fail("http:500")
+@IocBean // 还记得@IocBy吗? 这个跟@IocBy有很大的关系哦,意思是声明为Ioc容器中的一个Bean
+@At("/user") //整个模块的路径前缀
+@Ok("json:{locked:'password|salt',ignoreNull:true}") //将@Ok注解修改成这样，密码和salt也不可以发送到浏览器去;忽略空属性的jjson输出
+@Fail("http:500") //抛出异常的话，就走500页面
+@Filters(@By(type=CheckSession.class,args= {"me","/"})) //含义是如果当前Session没有带me这个attr，就跳转到 / 页面，即首页
 public class UserModule {
 
-	@Inject
+	@Inject //注入同名的一个ioc对象
 	protected Dao dao; // 就这么注入了,有@IocBean它才会生效
 
 	/**
 	 * 测试使用
-	 * 
+	 * 统计用户数的方法
 	 * @author liangshuai
 	 * @date 2018年6月8日 下午4:52:16
 	 * @return int
 	 * @return
 	 */
 	@At // 这个注解一定必须有，相当于requestMapping等（我初步理解是这样）
-	public int count() {
+	public int count() { 
 		return dao.count(User.class);
 	}
 
@@ -60,6 +64,7 @@ public class UserModule {
 	 * @return
 	 */
 	@At
+	@Filters //同时为login方法设置为空的过滤器，不然就没法登录了;覆盖UserModule类的@Filter设置，因为登录可不能要求是个已经登录的Session
 	public Object login(@Param("username") String name, @Param("password") String password, HttpSession session) {
 		User user = dao.fetch(User.class, Cnd.where("name", "=", name).and("password", "=", password));
 		if (user == null) {
@@ -71,7 +76,7 @@ public class UserModule {
 	}
 
 	@At
-	@Ok(">>:/") // 这个表示302重定向
+	@Ok(">>:/") // 这个表示302重定向 ; 跟其它方法不同，这个方法完成后就跳转首页了
 	public void logout(HttpSession session) {
 		session.invalidate();
 	}
@@ -127,7 +132,7 @@ public class UserModule {
 	 * @return
 	 */
 	@At
-	public Object add(@Param("..")User user) {
+	public Object add(@Param("..")User user) { //两个点号是按照对象属性一一设置
 		NutMap re = new NutMap();
 		String msg = checkUser(user,true);
 		if(msg != null) {
@@ -198,5 +203,17 @@ public class UserModule {
 		pager.setRecordCount(dao.count(User.class,cnd));
 		qr.setPager(pager);
 		return qr; //默认分页是第1页，每页显示20条
+	}
+	
+	/**
+	 * 因为我们打算把 jsp 放在 WEB-INF 下，然后 WEB-INF 下的文件是不能直接访问的，所以加一个跳转的方法
+	 * @author liangshuai
+	 * @date 2018年6月9日 下午4:34:40
+	 * @return void
+	 */
+	@At("/")
+	@Ok("jsp:jsp.user.list") //真实路径是 /WEB-INF/jsp/user/list.jsp
+	public void index() {
+		
 	}
 }
