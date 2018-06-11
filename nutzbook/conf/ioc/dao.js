@@ -1,4 +1,4 @@
-var ioc = {
+/*var ioc = {
         dataSource : {
             type : "com.alibaba.druid.pool.DruidDataSource",
             events : {
@@ -18,4 +18,26 @@ var ioc = {
             type : "org.nutz.dao.impl.NutDao",
             args : [{refer:"dataSource"}]
         }
-};
+};*/
+
+var ioc = {
+		conf:{
+			type:"org.nutz.ioc.impl.PropertiesProxy",
+			fields:{
+				paths:["custom/"]
+			}
+		},
+		dataSource:{
+			factory:"$conf#make",
+			args:["com.alibaba.druid.pool.DruidDataSource","db."],
+			type:"com.alibaba.druid.pool.DruidDataSource",
+			events:{
+				create:"init",
+				depose:'close'
+			}
+		},
+		dao:{
+			type:"org.nutz.dao.impl.NutDao",
+			args:[{refer:"dataSource"}]
+		}
+}

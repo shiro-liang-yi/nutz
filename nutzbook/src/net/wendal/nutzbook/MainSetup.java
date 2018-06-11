@@ -2,8 +2,10 @@ package net.wendal.nutzbook;
 
 import java.util.Date;
 
+import org.apache.commons.mail.HtmlEmail;
 import org.nutz.dao.Dao;
 import org.nutz.dao.util.Daos;
+import org.nutz.integration.quartz.NutQuartzCronJobFactory;
 import org.nutz.ioc.Ioc;
 import org.nutz.mvc.NutConfig;
 import org.nutz.mvc.Setup;
@@ -34,6 +36,19 @@ public class MainSetup implements Setup {
             user.setUpdateTime(new Date());
             dao.insert(user);
         }
+        // 获取NutQuartzCronJobFactory从而触发计划任务的初始化与启动
+        ioc.get(NutQuartzCronJobFactory.class);
+        //测试发送邮件
+//        try {
+//        	HtmlEmail email = ioc.get(HtmlEmail.class);
+//        	email.setSubject("测试NutzBook");
+//        	email.setMsg("This is a test mail... : -" + System.currentTimeMillis());
+//        	email.addTo("2653020258@qq.com");//请务必修改成自己的邮箱
+//        	email.buildMimeMessage();
+//        	email.sendMimeMessage();
+//        }catch(Exception e) {
+//        	e.printStackTrace();
+//        }
     }
 
     public void destroy(NutConfig nc) {

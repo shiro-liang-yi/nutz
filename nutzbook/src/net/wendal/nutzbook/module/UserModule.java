@@ -4,11 +4,11 @@ import java.util.Date;
 
 import javax.servlet.http.HttpSession;
 
+import org.nutz.aop.interceptor.ioc.TransAop;
 import org.nutz.dao.Cnd;
-import org.nutz.dao.Dao;
 import org.nutz.dao.QueryResult;
 import org.nutz.dao.pager.Pager;
-import org.nutz.ioc.loader.annotation.Inject;
+import org.nutz.ioc.aop.Aop;
 import org.nutz.ioc.loader.annotation.IocBean;
 import org.nutz.lang.Strings;
 import org.nutz.lang.util.NutMap;
@@ -22,6 +22,7 @@ import org.nutz.mvc.annotation.Param;
 import org.nutz.mvc.filter.CheckSession;
 
 import net.wendal.nutzbook.bean.User;
+import net.wendal.nutzbook.bean.UserProfile;
 
 /**
  * 配置Ioc相关注解及属性,即IocBean,Inject和Dao属性,哦哦,还有At
@@ -34,11 +35,15 @@ import net.wendal.nutzbook.bean.User;
 @Ok("json:{locked:'password|salt',ignoreNull:true}") //将@Ok注解修改成这样，密码和salt也不可以发送到浏览器去;忽略空属性的jjson输出
 @Fail("http:500") //抛出异常的话，就走500页面
 @Filters(@By(type=CheckSession.class,args= {"me","/"})) //含义是如果当前Session没有带me这个attr，就跳转到 / 页面，即首页
-public class UserModule {
+public class UserModule extends BaseModule {
 
-	@Inject //注入同名的一个ioc对象
+	/**
+	 * 打开UserModule类,继承BaseModule,并删除dao属性(非常非常重要)
+	 * 子类与超类的同名属性,会被屏蔽, 导致父类的同名属性没有赋值,调用时出现NPE
+	 */
+	/*@Inject //注入同名的一个ioc对象
 	protected Dao dao; // 就这么注入了,有@IocBean它才会生效
-
+*/
 	/**
 	 * 测试使用
 	 * 统计用户数的方法
@@ -176,14 +181,33 @@ public class UserModule {
 	 * @param me
 	 * @return
 	 */
-	@At
+	/*@At
 	public Object delete(@Param("id")int id, @Attr("me")int me) {
 		if(me == id) {
 			return new NutMap().setv("ok", false).setv("msg", "不能删除当前用户!!");
 		}
 		dao.delete(User.class,id); //再严谨一些的话，需要判断是否为 > 0
 		return new NutMap().setv("ok", true);
-	}
+	}*/
+	/**
+	 * 留意一下,因为有多个数据库操作,这里加上了事务,这不是必须的
+	 * @author liangshuai
+	 * @date 2018年6月11日 下午1:31:42
+	 * @return Object
+	 * @param id
+	 * @param me
+	 * @return
+	 */
+	@At
+    @Aop(TransAop.READ_COMMITTED)
+    public Object delete(@Param("id")int id, @Attr("me")int me) {
+        if (me == id) {
+            return new NutMap().setv("ok", false).setv("msg", "不能删除当前用户!!");
+        }
+        dao.delete(User.class, id); // 再严谨一些的话,需要判断是否为>0
+        dao.clear(UserProfile.class, Cnd.where("userId", "=", me));
+        return new NutMap().setv("ok", true);
+    }
 	
 	/**
 	 * query方法--根据条件查询用户

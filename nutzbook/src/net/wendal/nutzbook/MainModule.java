@@ -1,7 +1,11 @@
 package net.wendal.nutzbook;
 
+import org.nutz.mvc.annotation.ChainBy;
+import org.nutz.mvc.annotation.Fail;
 import org.nutz.mvc.annotation.IocBy;
+import org.nutz.mvc.annotation.Localization;
 import org.nutz.mvc.annotation.Modules;
+import org.nutz.mvc.annotation.Ok;
 import org.nutz.mvc.annotation.SetupBy;
 import org.nutz.mvc.ioc.provider.ComboIocProvider;
 
@@ -13,12 +17,17 @@ import org.nutz.mvc.ioc.provider.ComboIocProvider;
  * @author liangshuai
  * @date 2018年6月8日 下午4:03:20
  */
+
+@ChainBy(args="mvc/nutzbook-mvc-chain.js")
+@Localization(value="msg/",defaultLocalizationKey="zh-CN")
+@Fail("jsp:jsp.500")
+@Ok("json:full")
 @SetupBy(value=MainSetup.class)  //打开MainModule类, 配置@SetupBy, 引用刚刚创建的MainSetup
-@IocBy(type=ComboIocProvider.class, args={"*js", "ioc/",
-        // 这个package下所有带@IocBean注解的类,都会登记上
-                            "*anno", "net.wendal.nutzbook",
-                            "*tx", // 事务拦截 aop
-                            "*async"}) // 异步执行aop
+@IocBy(type=ComboIocProvider.class, args={
+        "*js", "ioc/",
+                          "*anno", "net.wendal.nutzbook",
+                          "*tx",
+                          "*quartz"})
 @Modules(scanPackage=true)
 public class MainModule {
 
